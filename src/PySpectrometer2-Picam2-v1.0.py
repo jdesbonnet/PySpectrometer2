@@ -32,6 +32,7 @@ from specFunctions import wavelength_to_rgb,savitzky_golay,peakIndexes,readcal,w
 import base64
 import argparse
 from picamera2 import Picamera2
+from libcamera import controls
 
 parser = argparse.ArgumentParser()
 group = parser.add_mutually_exclusive_group()
@@ -49,8 +50,11 @@ if args.waterfall:
 	
 	
 
-frameWidth = 800
+frameWidth = 800 
 frameHeight = 600
+
+videoFrameWidth = 1920
+videoFrameHeight = 1080
 
 picam2 = Picamera2()
 #need to spend more time at: https://datasheets.raspberrypi.com/camera/picamera2-manual.pdf
@@ -60,8 +64,9 @@ picam2 = Picamera2()
 #25fps (40000, 40000)
 
 picamGain = 10.0
+picamLensPosition = 1.0
 
-video_config = picam2.create_video_configuration(main={"format": 'RGB888', "size": (frameWidth, frameHeight)}, controls={"FrameDurationLimits": (33333, 33333)})
+video_config = picam2.create_video_configuration(main={"format": 'RGB888', "size": (videoFrameWidth, videoFrameHeight)}, controls={"FrameDurationLimits": (33333, 33333)})
 picam2.configure(video_config)
 picam2.start()
 
@@ -169,10 +174,13 @@ while True:
 	# Capture frame-by-frame
 	frame = picam2.capture_array()
 	y=int((frameHeight/2)-40) #origin of the vertical crop
-	#y=200 	#origin of the vert crop
+	y= 300	#origin of the vert crop
 	x=0   	#origin of the horiz crop
 	h=80 	#height of the crop
 	w=frameWidth 	#width of the crop
+
+	x = 800
+	y = 600
 	cropped = frame[y:y+h, x:x+w]
 	bwimage = cv2.cvtColor(cropped,cv2.COLOR_BGR2GRAY)
 	rows,cols = bwimage.shape
@@ -457,6 +465,13 @@ while True:
 			print("Camera Gain: "+str(picamGain))								
 				
 
+	elif keyPress == ord("f"): #focus
+			picamLensPosition += 0.1
+			#picam2.set_controls({"AwbEnable": False})
+			#picam2._set_awb_gains((1.0,1.0))
+			picam2.set_controls({"ColourGains": (1.0,1.0)}) 
+			picam2.set_controls({"AfMode": controls.AfModeEnum.Manual, "LensPosition": picamLensPosition})
+			print ("Lens position: " + str(picamLensPosition))
 
  
 #Everything done
